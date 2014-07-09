@@ -1,6 +1,7 @@
 (ns spiffy
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
+            [spiffy.core :as sc]
             [clojure.browser.repl :as repl]))
 
 (js/console.log "Hi")
@@ -16,12 +17,15 @@
 
 (def app-state (atom {:text "Hello world, mr yak!"}))
 
-(om/root widget app-state
-         {:target (. js/document (getElementById "my-app"))})
+(if-let [target (. js/document (getElementById "my-app"))]
+  (om/root widget app-state
+           {:target target}))
 
 (swap! app-state assoc :text "It's aliv,ceee")
 
 (repl/connect "http://localhost:9000/repl")
+
+(defn moo [x] (sc/foo x))
 
 (def ws 
   (let [w (new js/WebSocket "ws://localhost:8081/core")]

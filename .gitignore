@@ -1,3 +1,7 @@
 *~
 target
 resources/public/gen
+.lein-*
+.repl
+out
+

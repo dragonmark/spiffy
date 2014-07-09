@@ -13,7 +13,9 @@
 (defn foo
   "I don't do a whole lot."
   [x]
-  (println x "Hello, World!!"))
+  (println x "Hello, World!!")
+  (str "It's yak " x)
+  )
 
 (defn- find-guid-for-chan
   "Given a GUID, find a channel and create one if it's not found"

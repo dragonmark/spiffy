@@ -43,4 +43,4 @@
   ;; You may want to take a look: https://github.com/clojure/tools.namespace
   ;; and http://http-kit.org/migration.html#reload
   (println "Running")
-  (reset! server (hk/run-server #'app {:port 8081})))
+  (reset! server (hk/run-server #'app {:port 8080})))
