@@ -1,4 +1,4 @@
-(ns spiffy
+(ns spiffy.spiffy
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
             [spiffy.core :as sc]

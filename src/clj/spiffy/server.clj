@@ -1,4 +1,4 @@
-(ns server
+(ns spiffy.server
   (:require [compojure.route :as route]
             [org.httpkit.server :as hk])
   (:use compojure.core)
