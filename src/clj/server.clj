@@ -14,7 +14,22 @@
   (route/not-found "<h1>Page not found</h1>"))
 
 (defn app [request] 
-  (static request))
+  (if (and
+       (:websocket? request)
+       (= "/core" (:uri request)))
+       (do
+         (hk/with-channel request channel    ; get the channel
+           (if (hk/websocket? channel)            ; if you want to distinguish them
+             (do
+               (hk/on-close channel (fn [status] (println "Channel closed " status)))
+               (println "ws er")
+               (hk/send! channel "Hello")
+               (hk/on-receive channel (fn [data]     ; two way communication
+                                      (println "Got " data)
+                                      (hk/send! channel data))))))
+           (println "request is " request)
+         )
+       (static request)))
 
 (defn stop-server []
   (when-not (nil? @server)
@@ -28,4 +43,4 @@
   ;; You may want to take a look: https://github.com/clojure/tools.namespace
   ;; and http://http-kit.org/migration.html#reload
   (println "Running")
-  (reset! server (hk/run-server #'app {:port 8080})))
+  (reset! server (hk/run-server #'app {:port 8081})))

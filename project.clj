@@ -7,6 +7,7 @@
                  [org.clojure/clojurescript "0.0-2268"]
                  [org.clojure/core.async "0.1.303.0-886421-alpha"]
                  [http-kit "2.1.16"]
+                 [secretary "1.2.0"]
                  [compojure "1.1.8"]
                  [om "0.6.4"]]
 
@@ -15,27 +16,27 @@
   :source-paths ["src/cljx" "src/clj"]
   :test-paths ["target/test-classes"]
 
-  :hooks [cljx.hooks]
+  :hooks [leiningen.cljsbuild cljx.hooks]
 
   :cljx {:builds [{:source-paths ["src/cljx"]
-                   :output-path "target/classes"
+                   :output-path "target/generated/clj"
                    :rules :clj}
 
                   {:source-paths ["src/cljx"]
-                   :output-path "target/classes"
+                   :output-path "target/generated/cljs"
                    :rules :cljs}
 
                   {:source-paths ["test/cljx"]
-                   :output-path "target/test-classes"
+                   :output-path "target/generated/test/clj"
                    :rules :clj}
 
                   {:source-paths ["test/cljx"]
-                   :output-path "target/test-classes"
+                   :output-path "target/generated/test/cljs"
                    :rules :cljs}]}
 
   :cljsbuild {
               :builds [{:id "dev"
-                        :source-paths ["target/classes" "src/cljs"]
+                        :source-paths ["target/generated/cljs" "src/cljs"]
                         :compiler {:output-to "resources/public/gen/main.js"
                                    :output-dir "resources/public/gen"
                                    :optimizations :whitespace
@@ -44,20 +45,26 @@
                                    }}
                        
                        {:id "release"
-                        :source-paths ["target/classes" "src/cljs"]
+                        :source-paths ["target/generated/cljs" "src/cljs"]
                         :compiler {:output-to "resources/public/gen/main.js"
                                    :optimizations :advanced
                                    :pretty-print false
                                    :preamble ["react/react.min.js"]
                                    :externs ["react/externs/react.js"]}}]}
 
-  :profiles {:dev {:plugins [[org.clojure/clojurescript "0.0-2268"]
-                             [com.cemerick/clojurescript.test "0.3.0"]
-                             [com.keminglabs/cljx "0.4.0"]
-                             [lein-cljsbuild "1.0.3"]]
-                   :aliases {"cleantest" ["do" "clean," "cljx" "once," "test,"
-                                          "cljsbuild" "test"]
-                             "deploy" ["do" "clean," "cljx" "once," "deploy" "clojars"]}}}
+  :plugins [[org.clojure/clojurescript "0.0-2268"]
+            [com.cemerick/clojurescript.test "0.3.0"]
+            [com.cemerick/austin "0.1.4"]
+            [com.keminglabs/cljx "0.4.0"]
+            [lein-cljsbuild "1.0.3"]]
+
+  ;; :profiles {:dev {:plugins [[org.clojure/clojurescript "0.0-2268"]
+  ;;                            [com.cemerick/clojurescript.test "0.3.0"]
+  ;;                            [com.keminglabs/cljx "0.4.0"]
+  ;;                            [lein-cljsbuild "1.0.3"]]
+  ;;                  :aliases {"cleantest" ["do" "clean," "cljx" "once," "test,"
+  ;;                                         "cljsbuild" "test"]
+  ;;                            "deploy" ["do" "clean," "cljx" "once," "deploy" "clojars"]}}}
 
   :repositories {"sonatype-oss-public"
                  "https://oss.sonatype.org/content/repositories/snapshots/"}
