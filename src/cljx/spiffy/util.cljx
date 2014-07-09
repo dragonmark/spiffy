@@ -1,4 +1,4 @@
-(ns spiffy.core
+(ns spiffy.util
   #+cljs (:require-macros [cljs.core.async.macros :refer [go]])
   (:require
    #+clj [clojure.core.async :as async :refer [go chan timeout]]
