@@ -9,10 +9,20 @@
                  [http-kit "2.1.16"]
                  [secretary "1.2.0"]
                  [compojure "1.1.8"]
+                 [prismatic/schema "0.2.4"]
+                 [org.clojure/java.jdbc "0.3.4"]
+                 [sqlingvo "0.6.0"]
+                 [com.h2database/h2 "1.4.179"]
+                 [lobos "1.0.0-beta1"]
+                 [org.postgresql/postgresql "9.3-1101-jdbc41"]
                  [om "0.6.4"]]
+
+  :jvm-opts ["-Xmx1g" "-server" "-XX:+UseG1GC"] 
 
   :jar-exclusions [#"\.cljx|\.swp|\.swo|\.DS_Store"]
   
+  ;; ps axf | grep java | grep -v grep | awk '{print "jmap -histo:live " $1}' | sh
+
   :source-paths ["src/cljx" "src/clj"]
   :test-paths ["target/test-classes"]
 
@@ -56,6 +66,7 @@
             [com.cemerick/clojurescript.test "0.3.0"]
             [com.cemerick/austin "0.1.4"]
             [com.keminglabs/cljx "0.4.0"]
+            [lein-pdo "0.1.1"]
             [lein-cljsbuild "1.0.3"]]
 
   ;; :profiles {:dev {:plugins [[org.clojure/clojurescript "0.0-2268"]
@@ -69,5 +80,12 @@
   :repositories {"sonatype-oss-public"
                  "https://oss.sonatype.org/content/repositories/snapshots/"}
 
+  
+  :aliases {"build-auto" ["do" "clean,"
+                          "cljx" "once,"
+                          ["pdo"
+                           "cljx" "auto,"
+                           "cljsbuild" "auto"]]}
+  
   :main server
-)
+  )

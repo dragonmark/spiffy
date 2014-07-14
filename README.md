@@ -26,6 +26,10 @@ client/server, HTTP/REST, etc. It's just about messages.
 
 And there you have it.
 
+# Workflow
+
+
+
 ## License
 
 Spiffy is dual licensed under the Eclipse Public License,

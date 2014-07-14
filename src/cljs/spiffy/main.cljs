@@ -24,7 +24,7 @@
 
 (def repl-url (str protocol "//" hostname ":9000/repl" ))
 
-(def setup-url (str protocol "//" hostname ":" post "/setup" ))
+(def setup-url (str protocol "//" hostname ":" port  "/setup" ))
 
 (defn widget [data owner]
   (reify
@@ -54,7 +54,7 @@
 
            (let [w (new js/WebSocket "ws://localhost:8080/core")]
              (set! (.-onmessage w) (fn [message] 
-                                     (log "Message " (.-data message))))
+                                     (js/console.log "Message " (.-data message))))
              (set! (.-onopen w) (fn [me] (reset! server-socket w)))
              (set! (.-onerror w) (fn [error]
                                    (reset! server-socket nil)
