@@ -11,7 +11,6 @@
                  [compojure "1.1.8"]
                  [prismatic/schema "0.2.4"]
                  [org.clojure/java.jdbc "0.3.4"]
-                 [sqlingvo "0.6.0"]
                  [com.h2database/h2 "1.4.179"]
                  [org.postgresql/postgresql "9.3-1101-jdbc41"]
                  [ragtime/ragtime.sql.files "0.3.7"]
