@@ -28,6 +28,68 @@ And there you have it.
 
 # Workflow
 
+A big part of using Clojure is a simple, fast workflow where you
+can make a change and see the change in real time. This workflow
+is part of Spiffy.
+
+You need to start 2 REPL sessions... one for the server part of your
+code and the other for the client part of your code. I do this
+via emacs and [Cider](https://github.com/clojure-emacs/cider).
+
+I start two emacs sessions:
+
+     emacs src/cljs/spiffy/main.cljs &
+      
+     emacs src/clj/spiffy/server.clj &
+
+
+And then I start a compilation session for the [CLJX](https://github.com/lynaghk/cljx)
+and ClojureScript code:
+
+     lein pdo cljx auto, cljsbuild auto dev
+
+That kicks off parallel `cljx` and `cljs` compilers... so any
+change to the Cljx files will trigger a ClojureScript compilation
+and that means each time we reload the web page, we'll have the
+most recent version of the code.
+
+In one of the emacs sessions, I change the theme with `M-x` `load-theme`.
+In the case of the ClojureScript emacs session, the theme is light and
+in the Clojure session, the theme is dark.
+
+In each of the emacs sessions, I start a REPL via `C-c M-j` or `M-x` `cider-jack-in`.
+
+Once the REPLs are started, in the ClojureScript session, I start the
+ClojureScript REPL:
+
+	user> (require 'spiffy.server)
+	nil
+	user> (spiffy.server/run-cljs-repl)
+	Type `:cljs/quit` to stop the ClojureScript REPL
+	nil
+	cljs.user>
+
+And in the Clojure session, I start the web server:
+
+	user> (require 'spiffy.server)
+	nil
+	user> (ns spiffy.server)
+	nil
+	spiffy.server> (start-server)
+	Running
+	#<server$run_server$stop_server__8801 org.httpkit.server$run_server$stop_server__8801@f9008b0>
+	spiffy.server> 
+
+Then I load the page at http://localhost:8080 and boom... I have a web page
+hooked into both REPLs.
+
+We can test the ClojureScript REPL:
+
+	cljs.user> (ns spiffy.main)
+	nil
+	spiffy.main> (swap! app-state assoc :text "Wombat")
+
+And boom, in the browser, we see the text in the main component change.
 
 
 ## License

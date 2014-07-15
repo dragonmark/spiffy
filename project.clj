@@ -13,8 +13,8 @@
                  [org.clojure/java.jdbc "0.3.4"]
                  [sqlingvo "0.6.0"]
                  [com.h2database/h2 "1.4.179"]
-                 [lobos "1.0.0-beta1"]
                  [org.postgresql/postgresql "9.3-1101-jdbc41"]
+                 [ragtime/ragtime.sql.files "0.3.7"]
                  [om "0.6.4"]]
 
   :jvm-opts ["-Xmx1g" "-server" "-XX:+UseG1GC"] 
@@ -64,10 +64,14 @@
 
   :plugins [[org.clojure/clojurescript "0.0-2268"]
             [com.cemerick/clojurescript.test "0.3.0"]
+            [ragtime/ragtime.lein "0.3.7"]
             [com.cemerick/austin "0.1.4"]
             [com.keminglabs/cljx "0.4.0"]
             [lein-pdo "0.1.1"]
             [lein-cljsbuild "1.0.3"]]
+
+  :ragtime {:migrations ragtime.sql.files/migrations
+            :database "jdbc:h2:file:./spiffy.db"}
 
   ;; :profiles {:dev {:plugins [[org.clojure/clojurescript "0.0-2268"]
   ;;                            [com.cemerick/clojurescript.test "0.3.0"]
