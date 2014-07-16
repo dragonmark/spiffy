@@ -12,6 +12,7 @@
                  [prismatic/schema "0.2.4"]
                  [org.clojure/java.jdbc "0.3.4"]
                  [com.h2database/h2 "1.4.179"]
+                 [crypto-password "0.1.3"]
                  [org.postgresql/postgresql "9.3-1101-jdbc41"]
                  [ragtime/ragtime.sql.files "0.3.7"]
                  [om "0.6.4"]]
