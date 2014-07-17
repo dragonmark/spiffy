@@ -15,9 +15,10 @@
                  [crypto-password "0.1.3"]
                  [org.postgresql/postgresql "9.3-1101-jdbc41"]
                  [ragtime/ragtime.sql.files "0.3.7"]
+                 [potemkin "0.3.4"]
                  [om "0.6.4"]]
 
-  :jvm-opts ["-Xmx1g" "-server" "-XX:+UseG1GC"] 
+  ;; :jvm-opts ["-Xmx1g" "-server" "-XX:+UseG1GC"] 
 
   :jar-exclusions [#"\.cljx|\.swp|\.swo|\.DS_Store"]
   
@@ -91,5 +92,5 @@
                            "cljx" "auto,"
                            "cljsbuild" "auto"]]}
   
-  :main server
+  :main spiffy.server
   )

@@ -2,22 +2,42 @@
   (:require [crypto.password.bcrypt :as crypto]
             [clojure.java.jdbc :as j]
             [spiffy.services :as ss]
+            [schema.core :as ps]
   ))
 
 (def db {:subprotocol "h2"
          :subname "./spiffy.db"})
 
-(defn all-users
+(def User
+  {:id ps/Num
+   :first_name ps/Str
+   :last_name ps/Str
+   (ps/optional-key :passwd) ps/Str
+   :email ps/Str})
+
+(ps/defn all-users :- [User]
   "return all users"
   []
   (j/query db ["SELECT * FROM users"]))
 
-(defn find-user
+(ps/defn ^{:service true} test-login :- (ps/maybe User)
+  "Given an email address and a password, test the login.
+Return the user if the login is valid"
+  [email :- ps/Str
+   password :- ps/Str]
+  (some->>
+   (j/query db ["SELECT * FROM users WHERE email = ?"
+                (.toLowerCase email)])
+   (filter #(some->> % :passwd (crypto/check password)))
+   first))
+   
+
+(ps/defn find-user :- (ps/maybe User)
   "Find a user. If the parameter is
 a number, the user with that primary key is returned,
 otherwise the parameter is assumed to be the email
 address"
-  [id]
+  [id :- (ps/either ps/Num ps/Str User)]
   (cond
    (number? id) (first (j/query db ["SELECT * FROM users WHERE id = ?" id]))
    (string? id) (first (j/query db ["SELECT * FROM users WHERE email = ?"
@@ -26,17 +46,17 @@ address"
    :else nil)
   )
 
-(defn ^{:service true} save-user
+(ps/defn save-user :- User
   "Saves the user. If an ID field is present, does an update,
 otherwise does an insert. Returns the updated record"
-  [user]
+  [user :- User]
   (let [user (dissoc user :passwd)]
     (if (:id user)
       (j/update! db :users user ["id = ?" (:id user)])
       (let [id (j/insert! db :users user)]
         (assoc user :id (-> id first vals first))))))
 
-(defn set-password
+(ps/defn set-password
   "sets the password for the user"
   [user password]
   (let [user (find-user user)]
@@ -49,4 +69,4 @@ otherwise does an insert. Returns the updated record"
   (let [user (find-user user)]
     (crypto/check password (:passwd user))))
 
-(ss/register 'user)
+(ss/register 'db/user)

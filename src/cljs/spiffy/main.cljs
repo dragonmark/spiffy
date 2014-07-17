@@ -1,7 +1,10 @@
 (ns spiffy.main
+  (:require-macros [spiffy.services :as ss]
+                   [schema.macros :as sc])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
             [spiffy.util :as su :refer [log]]
+            [schema.core :as sc]
             [clojure.browser.repl :as repl]))
 
 (enable-console-print!)
@@ -26,7 +29,12 @@
 
 (def setup-url (str protocol "//" hostname ":" port  "/setup" ))
 
-(defn widget [data owner]
+(sc/defn ^{:service true} meow :- sc/Str "I say meow" [] "meow")
+
+(sc/defn ^{:service true} widget :- sc/Any
+  "Hi dude"
+  [data :- sc/Str
+   owner :- {}]
   (reify
     om/IRender
     (render [this]
@@ -71,3 +79,6 @@
   )
 
 (setup-server-socket)
+
+(ss/register 'foo/bar)
+ 
