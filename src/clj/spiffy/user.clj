@@ -2,6 +2,7 @@
   (:require [crypto.password.bcrypt :as crypto]
             [clojure.java.jdbc :as j]
             [spiffy.services :as ss]
+            [clojure.core.async :as async]
             [schema.core :as ps]
   ))
 
@@ -23,13 +24,14 @@
 (ps/defn ^{:service true} test-login :- (ps/maybe User)
   "Given an email address and a password, test the login.
 Return the user if the login is valid"
-  [email :- ps/Str
+  ([email :- ps/Str
    password :- ps/Str]
   (some->>
    (j/query db ["SELECT * FROM users WHERE email = ?"
                 (.toLowerCase email)])
    (filter #(some->> % :passwd (crypto/check password)))
    first))
+  )
    
 
 (ps/defn find-user :- (ps/maybe User)
@@ -69,4 +71,18 @@ otherwise does an insert. Returns the updated record"
   (let [user (find-user user)]
     (crypto/check password (:passwd user))))
 
-(ss/register 'db/user)
+(def ^:dynamic dog nil)
+
+(ps/defn ^:service moose [] 
+  (println "moose" (Thread/currentThread))
+  dog)
+
+  (let [c (ss/register 'db/user)
+        r (async/chan)]
+    (binding [dog 44]
+      (println "main" (Thread/currentThread))
+      (async/>!! c (with-meta {:_cmd "moose" :email "d@athena.com" :password "foo" :_answer r}
+                     {:bound-fn (let [bindings (get-thread-bindings)] (fn [f p] (with-bindings* bindings f p)))}
+                     ))
+      (println "Got " (async/<!! r))
+      (async/close! r)))
