@@ -80,5 +80,5 @@
 
 (setup-server-socket)
 
-(ss/register 'foo/bar)
+;; (ss/register 'foo/bar)
  
