@@ -1,7 +1,7 @@
 # A Spiffy place to start
 
 Okay... so it's kinda tough to start a web project in Clojure.
-Sure, there's [Pedistal](https://github.com/pedestal/pedestal),
+Sure, there's [Pedestal](https://github.com/pedestal/pedestal),
 but that's pretty much Clojure wrapped around a 15 year old
 architecture. Yuck.
 
