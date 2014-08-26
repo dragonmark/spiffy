@@ -1,9 +1,8 @@
 (ns spiffy.main
-  (:require-macros [spiffy.services :as ss]
-                   [schema.macros :as sc])
+  (:require-macros [schema.macros :as sc])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [spiffy.util :as su :refer [log]]
+            [dragonmark.util.core :as dc]
             [schema.core :as sc]
             [clojure.browser.repl :as repl]))
 
@@ -27,7 +26,8 @@
 
 (def repl-url (str protocol "//" hostname ":9000/repl" ))
 
-(def setup-url (str protocol "//" hostname ":" port  "/setup" ))
+(def setup-url (str protocol "//" hostname ":" port  "/setup?pageid="
+                    (dc/next-guid)))
 
 (sc/defn ^{:service true} meow :- sc/Str "I say meow" [] "meow")
 
@@ -46,7 +46,7 @@
   (om/root widget app-state
            {:target target}))
 
-(swap! app-state assoc :text "It's aliv,ceee")
+(swap! app-state assoc :text "It's aliv3")
 
 (repl/connect repl-url)
 
@@ -61,24 +61,24 @@
            (js/console.log "got "  (-> x .-target .getResponse))
 
            (let [w (new js/WebSocket "ws://localhost:8080/core")]
-             (set! (.-onmessage w) (fn [message] 
+             (set! (.-onmessage w) (fn [message]
                                      (js/console.log "Message " (.-data message))))
              (set! (.-onopen w) (fn [me] (reset! server-socket w)))
              (set! (.-onerror w) (fn [error]
                                    (reset! server-socket nil)
                                    (js/setTimeout setup-server-socket 100)
-                                   (log "Web Socket Error: " error)
+                                   ;; (log "Web Socket Error: " error)
                                    ))
-             (set! (.-onclose w) (fn [me] 
+             (set! (.-onclose w) (fn [me]
                                    (reset! server-socket nil)
                                    (js/setTimeout setup-server-socket 100)
-                                   (log "closed " me)))
+                                   ;; (log "closed " me)
+                                   ))
              w)
-           
+
            ))
   )
 
 (setup-server-socket)
 
 ;; (ss/register 'foo/bar)
- 
