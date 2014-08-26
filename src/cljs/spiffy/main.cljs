@@ -17,17 +17,21 @@
 
 (def port (.-port js/location))
 
+(defonce page-id (dc/next-guid))
+
 (def webservice-url (str (if secure? "wss" "ws")
                          "://"
                          hostname
                          ":"
                          port
-                         "/core"))
+                         "/core?pageid="
+                         page-id))
+
 
 (def repl-url (str protocol "//" hostname ":9000/repl" ))
 
 (def setup-url (str protocol "//" hostname ":" port  "/setup?pageid="
-                    (dc/next-guid)))
+                    page-id))
 
 (sc/defn ^{:service true} meow :- sc/Str "I say meow" [] "meow")
 
@@ -60,7 +64,7 @@
          (fn [x]
            (js/console.log "got "  (-> x .-target .getResponse))
 
-           (let [w (new js/WebSocket "ws://localhost:8080/core")]
+           (let [w (new js/WebSocket webservice-url)]
              (set! (.-onmessage w) (fn [message]
                                      (js/console.log "Message " (.-data message))))
              (set! (.-onopen w) (fn [me] (reset! server-socket w)))

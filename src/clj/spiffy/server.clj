@@ -5,6 +5,7 @@
             [org.httpkit.server :as hk]
             [dragonmark.util.props :as dup]
             [dragonmark.util.core :as dc]
+            [dragonmark.circulate.core :as circ]
             [schema.core :as sc]
             [clojure.core.async :as async]
             cljs.repl.browser
@@ -21,7 +22,23 @@
   (route/resources "/")
   (route/not-found "<h1>Page not found</h1>"))
 
-(def client-chan (atom nil))
+(def PageInfo
+  {:open sc/Bool
+   :last-closed-guid (sc/maybe sc/Str)
+   :source-chan sc/Any ;; Really a channel
+   :dest-chan sc/Any ;; Really a channel
+   :root sc/Any ;;
+   :data sc/Any})
+
+(def SessionInfo
+  {:last sc/Num
+   :hits sc/Num
+   :guid sc/Str
+   :pages {sc/Str PageInfo}
+   :user-guid (sc/maybe sc/Str)
+   (sc/optional-key  :user-data) sc/Any
+   })
+
 
 (defonce ^:private sessions
 ;;   "The session keeper.
@@ -31,15 +48,37 @@
 ;; GUID -> SessionInfo"
   (atom {}))
 
-(def SessionInfo
-  {:last sc/Num
-   :hits sc/Num
-   :guid sc/Str
-   :server (sc/maybe sc/Any)
-   :client (sc/maybe sc/Any)
-   :user-guid (sc/maybe sc/Str)
-   (sc/optional-key  :user-data) sc/Any
-   })
+(sc/defn update-session! {}
+  "update the session and the given path."
+  [session-id :- sc/Str
+   path :- [sc/Any]
+   fn ;; :- Ifn
+   & params]
+  (get
+   (swap! sessions update-in (cons session-id path) fn params)
+   session-id
+   ))
+
+(sc/defn assoc-session! {}
+  "Assoc  the session and the given path"
+  [session-id :- sc/Str
+   path :- [sc/Any]
+   value :- sc/Any]
+  (get
+   (swap! sessions assoc-in (cons session-id path) value)
+   session-id))
+
+(sc/defn get-session {}
+  "Get a value out of the session"
+  [guid :- sc/Str
+   path :- [sc/Any]]
+  (let [init  (get @sessions guid)]
+    (loop [value init path path]
+      (if (empty? path)
+        value
+        (recur
+         (get value (first path))
+         (rest path))))))
 
 (def cookie-name "dragonmark-session")
 
@@ -64,6 +103,16 @@
     session
     ))
 
+(sc/def ^:private shut-down-page
+  "Shut down the page"
+  [page]
+  )
+(sc/def ^:private shut-down-session
+  "Shut the session down"
+  [session]
+  (doall
+   (map shut-down-page (-> session :pages vals))))
+
 (defonce ^:private harvest
   ;; harvest the expired sessions
   (async/go
@@ -81,41 +130,88 @@
                   :guid)
             ]
         (dorun
-         (map #(swap! sessions dissoc %) to-remove))
+         (map #(let [removed (get @sessions %)]
+                 (shut-down-session removed)
+                 (swap! sessions dissoc %)) to-remove))
         )
       (recur))))
+
+(sc/def ^:private find-or-build-page-info :- PageInfo
+  "find or build a PageInfo object"
+  [guid :- sc/Str
+   pageid :- sc/Str]
+  (let [ret (atom nil)]
+    (update-session!
+     guid [:page pageid]
+     (fn [page-info]
+       (let [page-info
+             (or page-info
+                 (let [source-chan (async/chan)
+                       dest-chan (async/chan)
+                       root (circ/build-root-channel {})
+                       transport (circ/build-transport
+                                  root
+                                  source-chan dest-chan)
+                       ]))])
+       ))
+    @ret
+    ))
 
 (defn app [request]
   (cond
    (and
     (:websocket? request)
     (= "/core" (:uri request)))
+   (let [pageid (-> request :params (get "pageid"))]
+     (hk/with-channel request channel    ; get the channel
+       (if (and
+            (hk/websocket? channel) ; if you want to distinguish them
+            pageid
+            )
+         (let [session (find-or-build (-> request :cookies (get cookie-name)))
+               guid (:guid session)
+               [source-chan
+                dest-chan] (find-or-build-page-info guid pageid)]
 
-   (hk/with-channel request channel    ; get the channel
-     (if (hk/websocket? channel)            ; if you want to distinguish them
-       (do
-         (println "Cookies " (some-> request :cookies))
-         (reset! client-chan channel)
-         (hk/on-close channel
-                      (fn [status]
-                        (reset! client-chan nil)
-                        (println "Channel closed " status)))
+           (go
+             (loop []
+               (let [info (async/<! dest-chan)]
+                 (when (string? info)
+                   (hk/send! channel info)
+                   (recur)
+                   ))))
 
-         (hk/on-receive channel (fn [data]     ; two way communication
-                                  (println "Got " data)
-                                  (hk/send! channel (str "Client sez: " data))))
-         )
+           (hk/on-close channel
+                        (fn [status]
+                          (put! dest-chan :closed)
+                          (let [my-guid (dc/next-guid)]
+                            (update-session!
+                             guid [:pages pageid]
+                             #(as-> % x
+                                    (assoc x :open false)
+                                    (assoc x :last-closed-guid my-guid)))
+                            (go
+                              (async/<! (timeout 60000))
+                              (let [page-info (get-session guid
+                                                           [:pages pageid])]
+                                (when (and (not (:open page-info))
+                                           (= my-guid
+                                              (:last-closed-guid page-info)))
+                                  (shut-down-page page-info)
+                                  ))))))
 
-       ))
+           (hk/on-receive channel (fn [data]     ; two way communication
+                                    (put! source-chan data))))
+
+         )))
 
    (= "/setup" (:uri request))
    (let [session (find-or-build (-> request :cookies (get cookie-name)))]
-     (println request)
+
      {:body "got it"
       :cookies {cookie-name (:guid session)}
       :headers {"Content-Type" "text/plain"}
       })
-
 
    :else (static request)
 
