@@ -1,9 +1,13 @@
 (ns spiffy.main
-  (:require-macros [schema.macros :as sc])
+  (:require-macros [schema.macros :as sc]
+                   [dragonmark.circulate.core :as circ]
+                   [cljs.core.async.macros :as async :refer [go]])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
             [dragonmark.util.core :as dc]
+            [dragonmark.circulate.core :as circ]
             [schema.core :as sc]
+            [cljs.core.async :as async]
             [clojure.browser.repl :as repl]))
 
 (enable-console-print!)
@@ -15,9 +19,21 @@
 
 (def protocol (.-protocol js/location))
 
+
 (def port (.-port js/location))
 
 (defonce page-id (dc/next-guid))
+
+(defonce source-chan (async/chan))
+
+(defonce dest-chan (async/chan))
+(defonce root (circ/build-root-channel
+               {}))
+
+(defonce
+  transport (circ/build-transport
+             root
+             source-chan dest-chan))
 
 (def webservice-url (str (if secure? "wss" "ws")
                          "://"
@@ -42,7 +58,7 @@
   (reify
     om/IRender
     (render [this]
-      (dom/h1 nil (:text data)))))
+      (dom/h3 nil (:text data)))))
 
 (def app-state (atom {:text "Hello world, mr yak!"}))
 
@@ -50,7 +66,7 @@
   (om/root widget app-state
            {:target target}))
 
-(swap! app-state assoc :text "It's aliv3")
+(swap! app-state assoc :text "It's alive, dude!")
 
 (repl/connect repl-url)
 
@@ -66,14 +82,26 @@
 
            (let [w (new js/WebSocket webservice-url)]
              (set! (.-onmessage w) (fn [message]
-                                     (js/console.log "Message " (.-data message))))
-             (set! (.-onopen w) (fn [me] (reset! server-socket w)))
+                                     (async/put! source-chan (.-data  message))
+                                     ;; (js/console.log "Message " (.-data message))
+                                     ))
+             (set! (.-onopen w) (fn [me]
+                                  (async/go
+                                    (loop []
+                                      (let [info (async/<! dest-chan)]
+                                        (when (string? info)
+                                          (.send w info)
+                                          (recur)
+                                          ))))
+                                  (reset! server-socket w)))
              (set! (.-onerror w) (fn [error]
+                                   (async/put! dest-chan :closed)
                                    (reset! server-socket nil)
                                    (js/setTimeout setup-server-socket 100)
                                    ;; (log "Web Socket Error: " error)
                                    ))
              (set! (.-onclose w) (fn [me]
+                                   (async/put! dest-chan :closed)
                                    (reset! server-socket nil)
                                    (js/setTimeout setup-server-socket 100)
                                    ;; (log "closed " me)
@@ -84,5 +112,19 @@
   )
 
 (setup-server-socket)
+
+(defn make-remote-calls
+  []
+
+  (circ/gofor
+   :let [other-root  (circ/remote-root transport)]
+   [answer (inc other-root)]
+   (do
+     (swap! app-state assoc :text (str "Remote answer: " answer))
+     (js/setTimeout make-remote-calls 1000)
+     )
+   ))
+
+(make-remote-calls)
 
 ;; (ss/register 'foo/bar)

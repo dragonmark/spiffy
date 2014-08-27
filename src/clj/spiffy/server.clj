@@ -27,7 +27,8 @@
    :last-closed-guid (sc/maybe sc/Str)
    :source-chan sc/Any ;; Really a channel
    :dest-chan sc/Any ;; Really a channel
-   :root sc/Any ;;
+   :transport sc/Any ;; the transport
+   :root sc/Any ;; the root Channel
    :data sc/Any})
 
 (def SessionInfo
@@ -48,27 +49,27 @@
 ;; GUID -> SessionInfo"
   (atom {}))
 
-(sc/defn update-session! {}
+(sc/defn update-session! :- {}
   "update the session and the given path."
   [session-id :- sc/Str
    path :- [sc/Any]
    fn ;; :- Ifn
    & params]
   (get
-   (swap! sessions update-in (cons session-id path) fn params)
+   (swap! sessions #(apply update-in % (cons session-id path) fn params))
    session-id
    ))
 
-(sc/defn assoc-session! {}
+(sc/defn assoc-session! :- {}
   "Assoc  the session and the given path"
   [session-id :- sc/Str
    path :- [sc/Any]
    value :- sc/Any]
   (get
-   (swap! sessions assoc-in (cons session-id path) value)
+   (swap! sessions #(apply  assoc-in % (cons session-id path) value))
    session-id))
 
-(sc/defn get-session {}
+(sc/defn get-session :- {}
   "Get a value out of the session"
   [guid :- sc/Str
    path :- [sc/Any]]
@@ -103,11 +104,12 @@
     session
     ))
 
-(sc/def ^:private shut-down-page
+(defn ^:private shut-down-page
   "Shut down the page"
-  [page]
+  [the-page]
+  nil
   )
-(sc/def ^:private shut-down-session
+(sc/defn ^:private shut-down-session
   "Shut the session down"
   [session]
   (doall
@@ -136,26 +138,42 @@
         )
       (recur))))
 
-(sc/def ^:private find-or-build-page-info :- PageInfo
+(defn ^:private find-or-build-page-info
   "find or build a PageInfo object"
-  [guid :- sc/Str
-   pageid :- sc/Str]
+  [guid pageid]
   (let [ret (atom nil)]
     (update-session!
      guid [:page pageid]
      (fn [page-info]
        (let [page-info
              (or page-info
-                 (let [source-chan (async/chan)
+                 (let [count-atom (atom 0)
+                       source-chan (async/chan)
                        dest-chan (async/chan)
-                       root (circ/build-root-channel {})
+                       root (circ/build-root-channel
+                             {"get" (fn [msg env]
+                                      @count-atom)
+                              "inc" (fn [msg env]
+                                      (swap! count-atom inc))})
                        transport (circ/build-transport
                                   root
-                                  source-chan dest-chan)
-                       ]))])
-       ))
-    @ret
-    ))
+                                  source-chan dest-chan)]
+                   {:open true
+                    :last-closed-guid nil
+                    :source-chan source-chan
+                    :dest-chan dest-chan
+                    :root root
+                    :transport transport
+                    :data {}}
+                   ))
+
+             page-info (merge page-info
+                              {:open true
+                               :last-closed-guid nil})]
+         (reset! ret page-info)
+         page-info
+         )))
+    @ret))
 
 (defn app [request]
   (cond
@@ -170,10 +188,10 @@
             )
          (let [session (find-or-build (-> request :cookies (get cookie-name)))
                guid (:guid session)
-               [source-chan
-                dest-chan] (find-or-build-page-info guid pageid)]
+               {:keys [source-chan
+                       dest-chan]} (find-or-build-page-info guid pageid)]
 
-           (go
+           (async/go
              (loop []
                (let [info (async/<! dest-chan)]
                  (when (string? info)
@@ -181,27 +199,29 @@
                    (recur)
                    ))))
 
-           (hk/on-close channel
-                        (fn [status]
-                          (put! dest-chan :closed)
-                          (let [my-guid (dc/next-guid)]
-                            (update-session!
-                             guid [:pages pageid]
-                             #(as-> % x
-                                    (assoc x :open false)
-                                    (assoc x :last-closed-guid my-guid)))
-                            (go
-                              (async/<! (timeout 60000))
-                              (let [page-info (get-session guid
-                                                           [:pages pageid])]
-                                (when (and (not (:open page-info))
-                                           (= my-guid
-                                              (:last-closed-guid page-info)))
-                                  (shut-down-page page-info)
-                                  ))))))
+           (hk/on-close
+            channel
+            (fn [status]
+              (async/put! dest-chan :closed)
+              (let [my-guid (dc/next-guid)]
+                (update-session!
+                 guid [:pages pageid]
+                 (fn [j]
+                   (as-> j x
+                         (assoc x :open false)
+                         (assoc x :last-closed-guid my-guid))))
+                (async/go
+                  (async/<! (async/timeout 60000))
+                  (let [page-info (get-session guid
+                                               [:pages pageid])]
+                    (when (and (not (:open page-info))
+                               (= my-guid
+                                  (:last-closed-guid page-info)))
+                      (shut-down-page page-info)
+                      ))))))
 
            (hk/on-receive channel (fn [data]     ; two way communication
-                                    (put! source-chan data))))
+                                    (async/put! source-chan data))))
 
          )))
 
