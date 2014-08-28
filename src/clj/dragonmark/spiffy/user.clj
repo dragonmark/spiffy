@@ -1,7 +1,6 @@
-(ns spiffy.user
+(ns dragonmark.spiffy.user
   (:require [crypto.password.bcrypt :as crypto]
             [clojure.java.jdbc :as j]
-            [spiffy.services :as ss]
             [clojure.core.async :as async]
             [schema.core :as ps]
   ))
@@ -32,7 +31,7 @@ Return the user if the login is valid"
    (filter #(some->> % :passwd (crypto/check password)))
    first))
   )
-   
+
 
 (ps/defn find-user :- (ps/maybe User)
   "Find a user. If the parameter is
@@ -73,7 +72,7 @@ otherwise does an insert. Returns the updated record"
 
 (def ^:dynamic dog nil)
 
-(ps/defn ^:service moose [] 
+(ps/defn ^:service moose []
   (println "moose" (Thread/currentThread))
   dog)
 

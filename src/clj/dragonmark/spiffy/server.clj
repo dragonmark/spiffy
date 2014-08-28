@@ -1,4 +1,4 @@
-(ns spiffy.server
+(ns dragonmark.spiffy.server
   (:require [compojure.route :as route]
             [ring.middleware.cookies :as ring-cookies]
             [ring.middleware.params :as ring-params]
@@ -124,13 +124,13 @@
             then (-  (System/currentTimeMillis)
                      (* 15 1000 60) ;; 15 minutes without activity
                      )
+
             to-remove
             (as-> @sessions
                   x
-                  vals
+                  (vals x)
                   (filter #(< (-> % :last) then) x)
-                  :guid)
-            ]
+                  (map :guid x))]
         (dorun
          (map #(let [removed (get @sessions %)]
                  (shut-down-session removed)

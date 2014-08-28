@@ -1,4 +1,4 @@
-(ns spiffy.main
+(ns dragonmark.spiffyf.main
   (:require-macros [schema.macros :as sc]
                    [dragonmark.circulate.core :as circ]
                    [cljs.core.async.macros :as async :refer [go]])
