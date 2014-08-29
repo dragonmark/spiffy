@@ -8,6 +8,7 @@
             [dragonmark.circulate.core :as circ]
             [schema.core :as sc]
             [clojure.core.async :as async]
+            [dragonmark.spiffy.chat :as chat]
             cljs.repl.browser
             cemerick.piggieback)
   (:use compojure.core)
@@ -92,6 +93,10 @@
          (let [new-guid (dc/next-guid)
                init {:guid new-guid
                      :last (System/currentTimeMillis)
+                     :root (dc/build-root-channel
+                            {}
+                            (str "Session: " new-guid)
+                            @dc/env-root)
                      :hits 0
                      :server {}
                      :client {}}]
@@ -154,7 +159,9 @@
                              {"get" (fn [msg env]
                                       @count-atom)
                               "inc" (fn [msg env]
-                                      (swap! count-atom inc))})
+                                      (swap! count-atom inc))}
+                             (str "Page: " pageid)
+                             (get-session guid [:root]))
                        transport (circ/build-transport
                                   root
                                   source-chan dest-chan)]
@@ -237,6 +244,19 @@
 
    ))
 
+(defn build-server-root
+  "Builds the root service for the application"
+  []
+  (let [base (dc/build-root-channel {} "base" nil)
+        chat-service (chat/chat-service)]
+    ;; register the chat service
+    (dc/gofor
+     [_ (add base {:channel chat-service
+                   :public true
+                   :service "chat"})]
+     true)
+    base))
+
 (defn run-cljs-repl
   "Make the right piggieback calls to start a ClojureScript repl.
 This should be part of a workflow where the REPL is started in one
@@ -263,6 +283,7 @@ session (e.g. Emacs browser instance) and used for ClojureScript stuff"
   ;; You may want to take a look: https://github.com/clojure/tools.namespace
   ;; and http://http-kit.org/migration.html#reload
   (println "Running")
+  (reset! circ/env-root (build-server-root))
   (reset! server
           (hk/run-server
            (-> #'app ring-cookies/wrap-cookies
