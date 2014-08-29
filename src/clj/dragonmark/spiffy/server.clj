@@ -93,10 +93,10 @@
          (let [new-guid (dc/next-guid)
                init {:guid new-guid
                      :last (System/currentTimeMillis)
-                     :root (dc/build-root-channel
+                     :root (circ/build-root-channel
                             {}
                             (str "Session: " new-guid)
-                            @dc/env-root)
+                            @circ/env-root)
                      :hits 0
                      :server {}
                      :client {}}]
@@ -247,14 +247,16 @@
 (defn build-server-root
   "Builds the root service for the application"
   []
-  (let [base (dc/build-root-channel {} "base" nil)
-        chat-service (chat/chat-service)]
+  (let [base (circ/build-root-channel {} "base" nil)
+        chat-service chat/chat-service]
     ;; register the chat service
-    (dc/gofor
+    (circ/gofor
      [_ (add base {:channel chat-service
                    :public true
                    :service "chat"})]
-     true)
+     nil ;; (println "Added chat")
+     :error (println "Add error " &err))
+
     base))
 
 (defn run-cljs-repl

@@ -58,9 +58,19 @@
   (reify
     om/IRender
     (render [this]
-      (dom/h3 nil (:text data)))))
+      (dom/div nil
+       (dom/h3 nil (:text data))
+       (dom/ul nil
+               (clj->js
+                (map #(dom/li nil %) (:chat data))))
+       ))))
 
-(def app-state (atom {:text "Hello world, mr yak!"}))
+(def app-state
+  (atom
+   {
+    :text "Hello world, mr yak!"
+    :chat []
+    }))
 
 (if-let [target (. js/document (getElementById "my-app"))]
   (om/root widget app-state
@@ -127,4 +137,28 @@
 
 (make-remote-calls)
 
+(def chat-listener (async/chan))
+
+(go
+  (loop []
+    (let [info (async/<! chat-listener)]
+      (if (nil? info)
+        nil
+        (do
+          (if (sequential? info)
+            (swap! app-state assoc :chat info)
+            (swap! app-state update-in [:chat] conj info))
+          (.log js/console "Got from chat channel " info)
+          (recur))))))
+
+(def chat-server (atom nil))
+
+(circ/gofor
+ :let [other-root (circ/remote-root transport)]
+ [the-chat-server (locate-service other-root {:service "chat"})]
+ [_ (add-listener the-chat-server {:the-chan chat-listener})]
+ [_ (send-message the-chat-server {:msg (str  "Hello: " page-id)})]
+ (reset! chat-server the-chat-server)
+ :error (.log js/console "Got error " &err)
+ )
 ;; (ss/register 'foo/bar)
