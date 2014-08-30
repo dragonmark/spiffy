@@ -29,6 +29,8 @@
   :source-paths ["src/clj" "target/generated/clj/"]
   :test-paths ["test ""target/generated/test/clj"]
 
+  :min-lein-version "2.0.0"
+
   :hooks [leiningen.cljsbuild cljx.hooks]
 
   :cljx {:builds [{:source-paths ["src/cljx"]
