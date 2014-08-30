@@ -112,11 +112,15 @@
 (defn ^:private shut-down-page
   "Shut down the page"
   [the-page]
-  nil
-  )
+  (some-> (:transport the-page) circ/close!)
+  (some-> (:root the-page) async/close!)
+  (some-> (:source-chan the-page) async/close!)
+  (some-> (:dest-chan the-page) async/close!))
+
 (sc/defn ^:private shut-down-session
   "Shut the session down"
   [session]
+  (some-> (:root session) async/close!)
   (doall
    (map shut-down-page (-> session :pages vals))))
 
@@ -148,7 +152,7 @@
   [guid pageid]
   (let [ret (atom nil)]
     (update-session!
-     guid [:page pageid]
+     guid [:pages pageid]
      (fn [page-info]
        (let [page-info
              (or page-info
@@ -166,6 +170,7 @@
                                   root
                                   source-chan dest-chan)]
                    {:open true
+                    :page-id pageid
                     :last-closed-guid nil
                     :source-chan source-chan
                     :dest-chan dest-chan
@@ -202,6 +207,7 @@
              (loop []
                (let [info (async/<! dest-chan)]
                  (when (string? info)
+                   (find-or-build guid)
                    (hk/send! channel info)
                    (recur)
                    ))))
@@ -254,7 +260,7 @@
      [_ (add base {:channel chat-service
                    :public true
                    :service "chat"})]
-     nil ;; (println "Added chat")
+     (println "Added chat")
      :error (println "Add error " &err))
 
     base))

@@ -1,7 +1,13 @@
 (ns dragonmark.spiffy.chat
+  #+cljs
+  (:require-macros
+   [dragonmark.circulate.core :as circ]
+   )
   (:require
-   [clojure.core.async :as async]
-   [clojure.core.async.impl.protocols :as asyncp]
+   #+clj [clojure.core.async :as async]
+   #+clj [clojure.core.async.impl.protocols :as asyncp]
+   #+cljs [cljs.core.async :as async]
+   #+cljs [cljs.core.async.impl.protocols :as asyncp]
    [dragonmark.circulate.core :as circ]))
 
 (defonce ^:private listeners (atom []))
@@ -13,7 +19,7 @@
 get messages"
   [the-chan]
   (swap! listeners conj the-chan)
-  (async/put! the-chan  (into [] (take 50 @messages)))
+  (async/put! the-chan  (vec (take-last 30 @messages)))
   true)
 
 (defn ^:service remove-listener
@@ -28,9 +34,8 @@ get messages"
   (if (string? msg)
     (do
       (swap! messages conj msg)
-      (swap! listeners (fn [x]
-                         (filterv
-                          (fn [c] (not (asyncp/closed? c))) x)))
+      (swap! listeners
+             #(vec (remove asyncp/closed? %)))
       (mapv (fn [c] (async/put! c msg)) @listeners)
       true)
     false))

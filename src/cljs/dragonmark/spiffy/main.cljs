@@ -8,6 +8,8 @@
             [dragonmark.circulate.core :as circ]
             [schema.core :as sc]
             [cljs.core.async :as async]
+            [cljs.core.async.impl.protocols :as asyncp]
+
             [clojure.browser.repl :as repl]))
 
 (enable-console-print!)
@@ -58,17 +60,53 @@
   (reify
     om/IRender
     (render [this]
-      (dom/div nil
-       (dom/h3 nil (:text data))
+      (dom/h3 nil (:text data))
+      )))
+
+(def chat-server (atom nil))
+
+(defn- send-chat
+  [data owner]
+  (let [the-node (om/get-node owner "chat-in")
+        chat-string (.-value the-node)
+        chat-server @chat-server]
+    (when (and
+           chat-server
+           (not (asyncp/closed? chat-server))
+           chat-string)
+      ;; send the message to the chat server
+      (async/put! chat-server
+                  {:msg chat-string
+                   :_cmd "send-message"})
+
+      ;; clear the input
+      (aset the-node "value" "")
+      ))
+  )
+
+(sc/defn ^{:service true} chat-out :- sc/Any
+  "Hi dude"
+  [data :- sc/Str
+   owner :- {}]
+  (reify
+    om/IRender
+    (render [this]
+      (dom/div
+       nil
        (dom/ul nil
                (clj->js
-                (map #(dom/li nil %) (:chat data))))
-       ))))
+                (map-indexed #(dom/li #js
+                                      {:key (str "i-" %1)} %2)
+                             (:chat data))))
+       (dom/input #js {:type "text" :ref "chat-in"})
+       (dom/button #js {:onClick (fn [] (send-chat data owner))}
+                   "Chat"))
+      )))
 
 (def app-state
   (atom
    {
-    :text "Hello world, mr yak!"
+    :text "Hello world!"
     :chat []
     }))
 
@@ -76,7 +114,10 @@
   (om/root widget app-state
            {:target target}))
 
-(swap! app-state assoc :text "It's alive, dude!")
+(if-let [target (. js/document (getElementById "chat-area"))]
+  (om/root chat-out app-state
+           {:target target}))
+
 
 (repl/connect repl-url)
 
@@ -127,10 +168,9 @@
   []
 
   (circ/gofor
-   :let [other-root  (circ/remote-root transport)]
-   [answer (inc other-root)]
+   [answer (inc (circ/remote-root transport))]
    (do
-     (swap! app-state assoc :text (str "Remote answer: " answer))
+     (swap! app-state assoc :text (str "Remote count: " answer))
      (js/setTimeout make-remote-calls 1000)
      )
    ))
@@ -147,18 +187,18 @@
         (do
           (if (sequential? info)
             (swap! app-state assoc :chat info)
-            (swap! app-state update-in [:chat] conj info))
-          (.log js/console "Got from chat channel " info)
+            (swap! app-state #(update-in % [:chat]
+                                         (fn [x]
+                                           (->> (conj x info)
+                                                (take-last 30)
+                                                vec)))))
           (recur))))))
 
-(def chat-server (atom nil))
 
 (circ/gofor
  :let [other-root (circ/remote-root transport)]
  [the-chat-server (locate-service other-root {:service "chat"})]
  [_ (add-listener the-chat-server {:the-chan chat-listener})]
- [_ (send-message the-chat-server {:msg (str  "Hello: " page-id)})]
  (reset! chat-server the-chat-server)
- :error (.log js/console "Got error " &err)
+ :error (.log js/console "Got error " &err " var " &var)
  )
-;; (ss/register 'foo/bar)

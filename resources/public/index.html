@@ -1,17 +1,70 @@
 <!DOCTYPE html>
 <html>
-  <meta charset="utf-8">
   <head>
+    <title>Dragonmak: Spiffy Chat</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+
   </head>
   <body>
-    Welcome, dude foo
+    <div class="container">
+      <p>Welcome to the <a href="http://dragonmark.org">Dragonmark</a>
+        demo page.
+        </p>
 
-    <div id="my-app"></div>
+      <p><a href="http://en.wikipedia.org/wiki/Communicating_sequential_processes">Communicating Sequential Processes (CSP)</a> provides excellent patterns
+for building concurrent systems. <a href="http://clojure.org/">Clojure's</a>
+<a href="https://github.com/clojure/core.async">core.async</a> provides
+a Clojure implementation of CSP in a single address space.</p>
 
-  <script src="http://fb.me/react-0.9.0.js"></script>
+<p>However, very few programs run in a single address space.
+Web applications run in a combination of the browser and
+one or more servers. Very often, applications will span
+a cluster of servers.</p>
+
+<p><a href="https://github.com/dragonmark/dragonmark">Dragonmark Circulate</a>
+provides a mechanism for distributing <code>core.async</code> channels
+across address spaces while providing the same semantics
+to all the address spaces.</p>
+
+<p>This page has a counter that is updated each second based on a server round-trip and there is a group chat app... go ahead, put something in the chat input.</p>
+
+
+      <div id="my-app">
+      </div>
+
+      <div>
+        Chats:
+        <div id="chat-area">
+
+        </div>
+      </div>
+
+      <hr>
+      <div>
+        <a href="http://blog.goodstuff.im/dragonmark_chat">More information</a>
+      </div>
+    </div>
+
+    <center>
+    <div>(c) 2014 <a href="http://dpp.rocks">David Pollak</a></div>
+    </center>
+
+  <script src="http://fb.me/react-0.11.0.js"></script>
   <script src="gen/goog/base.js" type="text/javascript"></script>
   <script src="gen/main.js" type="text/javascript"></script>
   <script type="text/javascript">goog.require("dragonmark.spiffy.main");</script>
+
+  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 
   </body>
 </html>

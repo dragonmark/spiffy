@@ -8,6 +8,7 @@
                  [org.clojure/clojurescript "0.0-2322"]
                  [dragonmark/util "0.1.1"]
                  [http-kit "2.1.16"]
+                 [racehub/om-bootstrap "0.2.6"]
                  [secretary "1.2.0"]
                  [compojure "1.1.8"]
                  [prismatic/schema "0.2.4"]
@@ -25,8 +26,8 @@
 
   ;; ps axf | grep java | grep -v grep | awk '{print "jmap -histo:live " $1}' | sh
 
-  :source-paths ["src/cljx" "src/clj"]
-  :test-paths ["target/test-classes"]
+  :source-paths ["src/clj" "target/generated/clj/"]
+  :test-paths ["test ""target/generated/test/clj"]
 
   :hooks [leiningen.cljsbuild cljx.hooks]
 
@@ -66,7 +67,7 @@
 
   :plugins [[com.cemerick/clojurescript.test "0.3.1"]
             [ragtime/ragtime.lein "0.3.7"]
-            [com.cemerick/austin "0.1.5"]
+            [com.cemerick/austin "0.1.4"]
             [com.keminglabs/cljx "0.4.0"]
             [lein-pdo "0.1.1"]
             [lein-cljsbuild "1.0.3"]]
