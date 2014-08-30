@@ -9,10 +9,12 @@
             [schema.core :as sc]
             [clojure.core.async :as async]
             [dragonmark.spiffy.chat :as chat]
-            cljs.repl.browser
-            cemerick.piggieback)
+            ;; cljs.repl.browser
+            ;; cemerick.piggieback
+            )
   (:use compojure.core)
   (:import [java.io File])
+  (:gen-class)
   )
 
 ;; the server instance
@@ -50,10 +52,10 @@
 ;; GUID -> SessionInfo"
   (atom {}))
 
-(sc/defn update-session! :- {}
+(defn update-session!
   "update the session and the given path."
-  [session-id :- sc/Str
-   path :- [sc/Any]
+  [session-id ;; sc/Str
+   path ;; [sc/Any]
    fn ;; :- Ifn
    & params]
   (get
@@ -61,19 +63,21 @@
    session-id
    ))
 
-(sc/defn assoc-session! :- {}
+(defn assoc-session!
   "Assoc  the session and the given path"
-  [session-id :- sc/Str
-   path :- [sc/Any]
-   value :- sc/Any]
+  [session-id ;; sc/Str
+   path ;;:- [sc/Any]
+   value ;;:- sc/Any
+   ]
   (get
    (swap! sessions #(apply  assoc-in % (cons session-id path) value))
    session-id))
 
-(sc/defn get-session :- {}
+(defn get-session
   "Get a value out of the session"
-  [guid :- sc/Str
-   path :- [sc/Any]]
+  [guid ;;:- sc/Str
+   path ;;:- [sc/Any]
+   ]
   (let [init  (get @sessions guid)]
     (loop [value init path path]
       (if (empty? path)
@@ -84,7 +88,7 @@
 
 (def cookie-name "dragonmark-session")
 
-(sc/defn ^:private find-or-build :- SessionInfo
+(defn ^:private find-or-build ;;:- SessionInfo
   "Find a session or build a session"
   [guid]
   (let [session
@@ -117,7 +121,7 @@
   (some-> (:source-chan the-page) async/close!)
   (some-> (:dest-chan the-page) async/close!))
 
-(sc/defn ^:private shut-down-session
+(defn ^:private shut-down-session
   "Shut the session down"
   [session]
   (some-> (:root session) async/close!)
@@ -265,17 +269,17 @@
 
     base))
 
-(defn run-cljs-repl
-  "Make the right piggieback calls to start a ClojureScript repl.
-This should be part of a workflow where the REPL is started in one
-session (e.g. Emacs browser instance) and used for ClojureScript stuff"
-  []
-  (cemerick.piggieback/cljs-repl
-   :repl-env
-   (cljs.repl.browser/repl-env
-    :port (or
-           (some-> @dup/info :http :port :repl)
-           9000))))
+;; (defn run-cljs-repl
+;;   "Make the right piggieback calls to start a ClojureScript repl.
+;; This should be part of a workflow where the REPL is started in one
+;; session (e.g. Emacs browser instance) and used for ClojureScript stuff"
+;;   []
+;;   (cemerick.piggieback/cljs-repl
+;;    :repl-env
+;;    (cljs.repl.browser/repl-env
+;;     :port (or
+;;            (some-> @dup/info :http :port :repl)
+;;            9000))))
 
 (defn stop-server []
   (when-not (nil? @server)

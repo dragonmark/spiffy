@@ -83,6 +83,8 @@
   ;;                                         "cljsbuild" "test"]
   ;;                            "deploy" ["do" "clean," "cljx" "once," "deploy" "clojars"]}}}
 
+  :uberjar-name "dragonmark-spiffy.jar"
+
   :repositories {"sonatype-oss-public"
                  "https://oss.sonatype.org/content/repositories/snapshots/"}
 
