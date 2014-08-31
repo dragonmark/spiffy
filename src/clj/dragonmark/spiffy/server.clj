@@ -1,6 +1,7 @@
 (ns dragonmark.spiffy.server
   (:require [compojure.route :as route]
             [ring.middleware.cookies :as ring-cookies]
+            [ring.util.response :as ring-response]
             [ring.middleware.params :as ring-params]
             [org.httpkit.server :as hk]
             [dragonmark.util.props :as dup]
@@ -9,6 +10,7 @@
             [schema.core :as sc]
             [clojure.core.async :as async]
             [dragonmark.spiffy.chat :as chat]
+            [environ.core :refer [env]]
             ;; cljs.repl.browser
             ;; cemerick.piggieback
             )
@@ -21,7 +23,12 @@
 (defonce server (atom nil))
 
 (defroutes static
-  (GET "/" [] (File. "resources/public/index.html"))
+  (GET "/" []
+       (let [ret (ring-response/resource-response
+                  "index.html"
+                  {:root "public"})]
+         ret
+         ))
   (route/resources "/")
   (route/not-found "<h1>Page not found</h1>"))
 
@@ -290,20 +297,25 @@
 
 (defn start-server
   "start an http-kit instance at port 8080"
-  []
+
+  ([] (start-server
+       (or
+        (some-> @dup/info :http :port :main)
+        8080)))
   ;; The #' is useful, when you want to hot-reload code
   ;; You may want to take a look: https://github.com/clojure/tools.namespace
   ;; and http://http-kit.org/migration.html#reload
-  (println "Running")
-  (reset! circ/env-root (build-server-root))
-  (reset! server
-          (hk/run-server
-           (-> #'app ring-cookies/wrap-cookies
-               ring-params/wrap-params)
-           {:port
-            (or
-             (some-> @dup/info :http :port :main)
-             8080)})))
 
-(defn -main [ & args]
-  (start-server))
+  ([port]
+     (println "Running")
+     (reset! circ/env-root (build-server-root))
+     (reset! server
+             (hk/run-server
+              (-> #'app ring-cookies/wrap-cookies
+                  ring-params/wrap-params)
+              {:port port
+               }))))
+
+(defn -main [& [port]]
+  (let [port (Integer. (or port (env :port) 5000))]
+    (start-server port)))

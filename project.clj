@@ -8,6 +8,7 @@
                  [org.clojure/clojurescript "0.0-2322"]
                  [dragonmark/util "0.1.1"]
                  [http-kit "2.1.16"]
+                 [environ "0.5.0"]
                  [racehub/om-bootstrap "0.2.6"]
                  [secretary "1.2.0"]
                  [compojure "1.1.8"]
